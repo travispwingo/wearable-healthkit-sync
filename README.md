@@ -53,7 +53,7 @@ any mapping fabricates data. Skipped by design.
 ## How it works
 
 ```
-iOS Shortcut  ──GET  Authorization: Bearer <APP_SHARED_SECRET>──►  Cloudflare Worker
+iOS Shortcut  ──GET  /sync?k=<your key>  (capability URL)──►  Cloudflare Worker
 (daily, thin)                                                        OAuth2 refresh (KV)
   Get Contents of URL                                                normalize (pure fns) ──► Oura API v2
   Get Dictionary from Input     ◄──── grouped JSON ────             group by HealthKit type
@@ -77,50 +77,47 @@ hard-coded block per metric (its Type field can't be a variable):
 
 ---
 
-## Setup
+## Setup — no terminal required
 
-### 1. Register an Oura OAuth app
+You self-host your own copy. There's **no CLI**: deploy with a button, then finish
+in a browser wizard. Two steps are unavoidable (platform limits, not this tool):
+creating your own free Oura API app, and adding the daily automation on your iPhone.
 
-Oura **deprecated Personal Access Tokens in Dec 2025**, so OAuth2 is required.
+### 1. Deploy the Worker
 
-1. Go to <https://cloud.ouraring.com/oauth/applications> and create an application.
-2. Add a **Redirect URI** — your Worker's callback, e.g.
-   `https://wearable-healthkit-sync.<you>.workers.dev/auth/callback`
-   (and `http://localhost:8787/auth/callback` for local dev).
-3. Note the **Client ID** and **Client Secret**.
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/travispwingo/wearable-healthkit-sync)
 
-> A personal app serves up to 10 users before Oura requires approval — fine for
-> self-hosting.
+Click the button → sign in / sign up for a **free Cloudflare account** → authorize
+the Cloudflare app on your **GitHub** account (it copies the repo there) → when
+prompted, choose a **Setup Password** (`SETUP_PASSWORD`) → **Deploy**. Cloudflare
+auto-creates the KV namespace. You'll get a Worker URL like
+`https://wearable-healthkit-sync.<you>.workers.dev`.
 
-### 2. Deploy the Worker
+### 2. Finish in the browser wizard
 
-```bash
-npm install
-npx wrangler login
-npx wrangler kv namespace create OURA_KV      # paste the printed id into wrangler.toml
-npx wrangler secret put OURA_CLIENT_ID
-npx wrangler secret put OURA_CLIENT_SECRET
-npx wrangler secret put OURA_REDIRECT_URI     # the https callback from step 1
-npx wrangler secret put APP_SHARED_SECRET     # e.g. `openssl rand -hex 32`
-npm run deploy
-```
+Open your Worker URL — it lands on the **setup wizard**. Enter your Setup Password,
+then:
 
-### 3. Connect your Oura account (one time)
+1. **Create a free Oura API app.** The wizard shows the exact **Redirect URI** to
+   paste (it's your own Worker's `/auth/callback`) and links to Oura's
+   [applications page](https://cloud.ouraring.com/oauth/applications). Paste the
+   **Client ID** and **Client Secret** back into the wizard. *(Oura deprecated
+   Personal Access Tokens in Dec 2025 and doesn't allow a shared app, so each
+   self-hoster registers their own — a personal app serves up to 10 users with no
+   approval.)*
+2. **Sign in with Oura** — one click; stores a rotating refresh token.
+3. **Copy your personal sync link** and add the iPhone Shortcut (next step).
 
-Visit `https://<your-worker-url>/auth/start` in a browser, approve access, and
-you'll see "✅ Connected". This stores a (rotating) refresh token in KV.
+### 3. Add the iPhone Shortcut
 
-Verify the endpoint returns data:
+The wizard gives you a **single personal sync link** (your Worker URL with your
+key in it) and a link to add the Shortcut. See
+**[`shortcut/README.md`](shortcut/README.md)**: you tap to add the Shortcut, paste
+that one link when it asks, grant the four Health permissions once, and set a
+once-a-day automation (the illustrated ~10-tap step that can't be automated).
 
-```bash
-curl -H "Authorization: Bearer <APP_SHARED_SECRET>" https://<your-worker-url>/
-```
-
-### 4. Install & schedule the Shortcut
-
-See **[`shortcut/README.md`](shortcut/README.md)** to import (or rebuild) the
-Shortcut, paste your Worker URL + shared secret, grant the four Health
-permissions, and set a daily automation.
+> **Requires:** a free Cloudflare account, a GitHub account, and an active Oura
+> membership (Oura requires membership for API access on current rings).
 
 ---
 
@@ -133,10 +130,12 @@ cp .dev.vars.example .dev.vars   # fill in values
 npm run dev       # wrangler dev on http://localhost:8787
 ```
 
-You can exercise the full flow locally against `http://localhost:8787/auth/start`
-once `.dev.vars` has your Oura client credentials and a matching localhost
-redirect URI. For parsing/shape work without a ring, Oura also offers a
-[sandbox](https://cloud.ouraring.com/v2/docs) with static demo data.
+Set `SETUP_PASSWORD` in `.dev.vars`, then open `http://localhost:8787/setup` and
+run the wizard locally (register a throwaway Oura app with a
+`http://localhost:8787/auth/callback` redirect URI). Config is stored in local KV.
+For parsing/shape work without a ring, Oura also offers a
+[sandbox](https://cloud.ouraring.com/v2/docs) with static demo data
+(point `OURA_API_BASE` at it).
 
 ---
 

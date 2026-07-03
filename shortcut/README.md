@@ -16,7 +16,9 @@ reconstruct the Shortcut from scratch in a few minutes.
 
 ## What it does
 
-1. `GET` your Worker with an `Authorization: Bearer <APP_SHARED_SECRET>` header.
+1. `GET` your **personal sync link** (a single URL with your key baked in — the
+   setup wizard gives it to you, e.g. `https://…workers.dev/sync?k=abc123…`).
+   Nothing else to paste; no separate header or secret.
 2. Parse the JSON (an object keyed by HealthKit type → array of `{ value, date }`).
 3. For each of the four metric types, loop the array and `Log Health Sample`.
 
@@ -29,17 +31,18 @@ a fixed picker (it can't be a variable), so there's one small block per metric.
 
 Create a new Shortcut and add these actions in order.
 
-**A. Configuration**
-1. **Text** → your Worker URL, e.g. `https://wearable-healthkit-sync.you.workers.dev/`
-   (Set a variable named `WorkerURL` from it if you like.)
-2. **Text** → your `APP_SHARED_SECRET`. (Set variable `Secret`.)
+**A. Configuration (one value, asked on import)**
+1. **Text** → paste your personal sync link here as a placeholder. Set a variable
+   named `SyncURL` from it.
+   - So users never edit the action: **Setup → Add New Question**, point it at this
+     Text action, question = *"Paste your personal sync link"*. On import, the user
+     just pastes the one link — no action editing.
 
 **B. Fetch**
-3. **Get Contents of URL**
-   - URL: `WorkerURL`
-   - Method: **GET**
-   - Headers: add `Authorization` = `Bearer ` + `Secret`  (note the trailing space after *Bearer*)
-4. **Get Dictionary from Input** (parses the JSON response).
+2. **Get Contents of URL**
+   - URL: `SyncURL`
+   - Method: **GET** (the key is in the URL, so no headers are needed)
+3. **Get Dictionary from Input** (parses the JSON response).
 
 **C. Write each metric** — repeat this 4-action pattern once per metric, changing
 only the **key** and the **Log Health Sample → Type**:
@@ -52,9 +55,9 @@ only the **key** and the **Log Health Sample → Type**:
 | `vo2Max` | VO2 Max |
 
 For each:
-5. **Get Dictionary Value** → Get **Value** for **key** (e.g. `heartRateVariabilitySDNN`)
-   from the *Dictionary* (step 4). This yields the array of samples.
-6. **Repeat with Each** (that array):
+4. **Get Dictionary Value** → Get **Value** for **key** (e.g. `heartRateVariabilitySDNN`)
+   from the parsed dictionary (step 3). This yields the array of samples.
+5. **Repeat with Each** (that array):
    1. **Get Dictionary Value** → `value` from **Repeat Item**.
    2. **Get Dictionary Value** → `date` from **Repeat Item**.
    3. *(recommended)* **Get Dates from Input** (or **Format Date**) on the `date`
@@ -103,7 +106,7 @@ Automation** → **Time of Day**:
 
 ## Optional: avoid duplicate writes
 
-To guard against an accidental double-run, add before each `Repeat` (step 6):
+To guard against an accidental double-run, add before each `Repeat` (step 5):
 
 - **Find Health Samples** where **Type** = *(the metric)*, **Start Date** is
   **Today**, filtered to source *Shortcuts* → **Count**.

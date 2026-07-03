@@ -1,12 +1,14 @@
-/** Shared-secret check for the sync endpoint. The Shortcut sends the secret as
- *  `Authorization: Bearer <APP_SHARED_SECRET>`. Compared in constant time over
- *  SHA-256 digests so neither the value nor its length leaks via timing. */
-
-function extractBearer(request: Request): string {
-  const header = request.headers.get("Authorization") ?? "";
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  return match?.[1] ?? "";
-}
+/**
+ * Constant-time credential checks.
+ *
+ * - The sync endpoint accepts the app token either as `?k=<token>` (the
+ *   "capability URL" the Shortcut uses — one link, nothing else to paste) or as
+ *   an `Authorization: Bearer <token>` header.
+ * - The /setup wizard is gated by SETUP_PASSWORD, sent as an `X-Setup-Password`
+ *   header from the wizard's inline JS.
+ *
+ * Comparisons run over SHA-256 digests so neither value nor length leaks via timing.
+ */
 
 async function sha256(value: string): Promise<Uint8Array> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
@@ -20,9 +22,24 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return diff === 0;
 }
 
-export async function isAuthorized(request: Request, expected: string): Promise<boolean> {
+async function constantTimeEquals(provided: string, expected: string): Promise<boolean> {
   if (!expected) return false;
-  const provided = extractBearer(request);
   const [pa, pb] = await Promise.all([sha256(provided), sha256(expected)]);
   return timingSafeEqual(pa, pb);
+}
+
+function bearer(request: Request): string {
+  const match = (request.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i);
+  return match?.[1] ?? "";
+}
+
+/** Sync-endpoint auth: `?k=<token>` query param or Bearer header. */
+export async function checkAppToken(request: Request, url: URL, expected: string): Promise<boolean> {
+  const provided = url.searchParams.get("k") ?? bearer(request);
+  return constantTimeEquals(provided, expected);
+}
+
+/** Wizard auth: `X-Setup-Password` header vs the SETUP_PASSWORD secret. */
+export async function checkSetupPassword(request: Request, expected: string | undefined): Promise<boolean> {
+  return constantTimeEquals(request.headers.get("X-Setup-Password") ?? "", expected ?? "");
 }

@@ -1,21 +1,22 @@
 # Copy to `.dev.vars` for local `wrangler dev`. NEVER commit `.dev.vars`.
-# In production these are set with `wrangler secret put <NAME>`.
+# In production, the deploy button prompts for these (or set them in the
+# Cloudflare dashboard → Settings → Variables and Secrets).
 
-# From your Oura OAuth app at https://cloud.ouraring.com/oauth/applications
-OURA_CLIENT_ID=your_oura_client_id
-OURA_CLIENT_SECRET=your_oura_client_secret
+# The ONE required secret: it gates the /setup wizard. Choose any strong value.
+# (This is the only field the "Deploy to Cloudflare" button prompts for.)
+SETUP_PASSWORD=choose-a-strong-password
 
-# Must EXACTLY match a redirect URI registered on the Oura app.
-# Local dev default (wrangler dev serves on :8787):
-OURA_REDIRECT_URI=http://localhost:8787/auth/callback
-
-# Long random string the iOS Shortcut sends as `Authorization: Bearer <this>`.
-# Generate one, e.g.:  openssl rand -hex 32
-APP_SHARED_SECRET=generate_a_long_random_string
-
-# SpO2 representation. "true" (default) writes the HealthKit-native fraction (0.96);
-# set "false" if on-device testing shows the Shortcut wants the raw percent (96).
-SPO2_AS_FRACTION=true
+# ---- Advanced / optional ----
+# SpO2 representation is a plain var with a default in wrangler.toml ([vars]):
+#   SPO2_AS_FRACTION = "true"  → HealthKit-native fraction (0.96)
+#   set "false" if on-device testing shows the Shortcut wants the raw percent (96)
+# Everything below is normally configured in the /setup wizard (stored in KV).
+# You only need these if you prefer to skip the wizard and set Oura creds as
+# secrets directly. KV values (from the wizard) take precedence; these are used
+# only when the KV values are absent.
+# OURA_CLIENT_ID=your_oura_client_id
+# OURA_CLIENT_SECRET=your_oura_client_secret
+# APP_SHARED_SECRET=fixed_sync_token_instead_of_the_generated_one
 
 # Optional: point at the Oura sandbox for local testing without a real ring.
-# OURA_API_BASE=https://api.ouraring.com   (sandbox path handled per-endpoint)
+# OURA_API_BASE=https://api.ouraring.com

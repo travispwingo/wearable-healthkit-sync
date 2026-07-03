@@ -1,0 +1,15 @@
+name = "wearable-healthkit-sync"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# KV namespace holds the rotating Oura refresh token + transient OAuth state.
+# Create it with:  wrangler kv namespace create OURA_KV
+# then paste the printed id below.
+[[kv_namespaces]]
+binding = "OURA_KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# Non-secret defaults. Secrets (OURA_CLIENT_ID, OURA_CLIENT_SECRET,
+# APP_SHARED_SECRET, OURA_REDIRECT_URI) are set with `wrangler secret put <NAME>`.
+[vars]
+SPO2_AS_FRACTION = "true"

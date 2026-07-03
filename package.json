@@ -1,0 +1,21 @@
+{
+  "name": "wearable-healthkit-sync",
+  "version": "0.1.0",
+  "description": "Sync Oura Ring gap metrics (HRV, SpO2, VO2 Max, Resting HR) into Apple HealthKit via an iOS Shortcut. Extensible to other wearables.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240909.0",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1",
+    "wrangler": "^3.78.0"
+  }
+}

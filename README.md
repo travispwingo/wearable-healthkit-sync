@@ -31,16 +31,26 @@ What Oura's native sync leaves out is exactly this tool's job:
 Oura reports HRV as **RMSSD**; Apple Health only has an **SDNN** field. These are
 different measures and **there is no valid formula to convert RMSSD to SDNN** (the
 ratio depends on the person, recording length, and autonomic state). This tool
-writes Oura's **raw RMSSD value into the SDNN field, unchanged**, tagged as coming
-from Oura.
+writes Oura's **raw RMSSD value into the SDNN field, unchanged**, attributed to Oura
+(`source: "oura"` in the sync payload).
 
 **Consequence:** the number is honest RMSSD, but it is *not* comparable to Apple
 Watch's HRV (a true, ~60-second SDNN). **Never chart the two together** — you'd get
 a meaningless line. This is precisely why Oura's own native sync omits HRV.
 
-*(A more correct alternative — computing a genuine SDNN from Oura's raw
-`interbeat_interval` series — is possible and noted under [Roadmap](#roadmap), but
-is intentionally out of scope for v1.)*
+**Telling it apart in Health.** Samples this tool writes land under the **“Shortcuts”**
+source in Apple Health, so they're already separable from your Apple Watch's true
+SDNN (source **“Apple Watch”**). The Shortcuts *Log Health Sample* action can't set a
+custom source or metadata, so Health labels these “Shortcuts,” not literally “Oura” —
+the `source: "oura"` tag lives in the sync payload and this doc, not inside the
+HealthKit sample.
+
+*(Could we store a genuine SDNN instead? Only by computing it from Oura's raw
+inter-beat-interval series — and that endpoint is gated behind Oura's
+**research-access scope**, which standard tokens and OAuth apps cannot obtain
+(verified: a valid token returns `401 "Token is not authorized access research
+scope."`). True SDNN is therefore **not achievable** for a self-hostable tool; raw
+RMSSD is the honest ceiling. See [Roadmap](#roadmap).)*
 
 ### Temperature is intentionally skipped
 
@@ -173,9 +183,13 @@ series / VO2 Max history / Body Battery. Treat Garmin support as best-effort.
 
 ## Roadmap
 
-- **Real SDNN from IBI (opt-in):** compute a genuine SDNN from Oura's raw
-  `/v2/usercollection/interbeat_interval` series (windowed to ~60 s to mirror
-  Apple Watch), instead of storing raw RMSSD. Depends on IBI coverage/quality.
+- ~~**Real SDNN from IBI (opt-in)**~~ **— investigated, blocked.** Computing a genuine
+  SDNN from Oura's raw `/v2/usercollection/interbeat_interval` series (windowed to
+  ~60 s to mirror Apple Watch) would be the correct fix, but that endpoint is gated
+  behind Oura's **research-access scope**, which standard Personal Access Tokens /
+  OAuth apps cannot obtain (verified 2026-07: valid token → `401 "Token is not
+  authorized access research scope."`). Not viable for a self-hostable tool. The
+  read-only `scripts/ibi-coverage-probe.mjs` reproduces the check on any account.
 - **Missed-day catch-up:** a KV-stored cursor so a skipped day is backfilled on the
   next run.
 - **Optional daily scores** (readiness/sleep/activity) as informational samples.

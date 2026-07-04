@@ -29,7 +29,13 @@ a fixed picker (it can't be a variable), so there's one small block per metric.
 
 ## Build it (≈5 min)
 
-Create a new Shortcut and add these actions in order.
+Create a new Shortcut and add these actions in order. **Name it something clear like
+“Oura → Health”** so it's obvious in your Shortcuts and Automations lists. (Heads-up:
+this names the *shortcut*, not the Health data source — Apple Health attributes
+anything written via Shortcuts to the **“Shortcuts”** source regardless of the name.
+That's still enough to tell Oura's HRV apart from your Apple Watch's true SDNN, which
+shows as **“Apple Watch”** — see [the HRV caveat](../README.md#the-hrv-caveat-read-this)
+in the main README.)
 
 **A. Configuration (one value, asked on import)**
 1. **Text** → paste your personal sync link here as a placeholder. Set a variable
